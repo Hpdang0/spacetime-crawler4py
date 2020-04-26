@@ -4,11 +4,22 @@ from utils.download import download
 from utils import get_logger
 from scraper import scraper
 from bs4 import BeautifulSoup
+from tinydb import TinyDB, Query
 
 from tokenizer import Tokenizer
 
 import time
+class Data():
+    def __init__(self, name = 'db.json'):
+        self.name = name
+        self.data = TinyDB(name)
+        self.num_urls = 0
+        self.token_count = 0
 
+    def insert(self, contents): # contents should be a dict {url:[tokens]}
+        self.data.insert(contents)
+        self.num_urls += 1
+        self.token_count += len(list(contents.values())[0])
 
 class Worker(Thread):
     def __init__(self, worker_id, config, frontier):
@@ -16,6 +27,7 @@ class Worker(Thread):
         self.config = config
         self.frontier = frontier
         self.token = Tokenizer()
+        self.tiny = Data()
         super().__init__(daemon=True)
         
     def run(self):
@@ -29,8 +41,9 @@ class Worker(Thread):
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
             untokenized_text = self.extract_text(resp)
-            tokenized_text = self.token.Tokenize(untokenized_text)
+            tokenized_text = self.token.Tokenize(untokenized_text)  
             print(sorted(tokenized_text.items(),key = lambda i : i[1], reverse = True))
+            self.tiny.insert({tbd_url : list(tokenized_text.keys())}) # inserting the text into the tinydb
             print(self.token.Final_dict())
             scraped_urls = scraper(tbd_url, resp)
             for scraped_url in scraped_urls:
