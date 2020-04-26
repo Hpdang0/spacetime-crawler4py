@@ -22,6 +22,33 @@ class Data():
         self.token_count += len(list(contents.values())[0])
 
 class Worker(Thread):
+    class db_cache():
+        def __init__(self, size = 5):
+            self._max_size = size
+            self._queue = list()
+        
+        def append(self, element):
+            if len(self._queue) >= self._max_size:
+                self._queue.pop(0)
+            self._queue.append(element)
+
+        def __str__(self):
+            return str(self._queue)
+
+        def __repr__(self):
+            return "Cache({})".format(self._max_size)
+
+        def __iter__(self):
+            self.current = -1
+            return self
+
+        def __next__(self):
+            self.current += 1
+            if self.current < self._max_size:
+                return self._queue[self.current]
+            raise StopIteration
+
+
     def __init__(self, worker_id, config, frontier):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
         self.config = config
@@ -29,6 +56,8 @@ class Worker(Thread):
         self.token = Tokenizer()
         self.tiny = Data()
         super().__init__(daemon=True)
+        self.cache = self.db_cache()
+        
         
     def run(self):
         while True:
@@ -40,14 +69,31 @@ class Worker(Thread):
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
+            
+            # Text Extraction
             untokenized_text = self.extract_text(resp)
-            tokenized_text = self.token.Tokenize(untokenized_text)  
-            # print(sorted(tokenized_text.items(),key = lambda i : i[1], reverse = True))
-            self.tiny.insert({tbd_url : tokenized_text}) # inserting the text into the tinydb
-            print(self.token.Final_dict())
-            scraped_urls = scraper(tbd_url, resp)
-            for scraped_url in scraped_urls:
-                self.frontier.add_url(scraped_url)
+            tokenized_text = self.token.Tokenize(untokenized_text)
+
+            # Compare similarity to last 5 pages we crawled in
+            low_data = False
+            for url_token_pair in self.cache:
+                if self.token.Similarity(tokenized_text, url_token_pair[1]):
+                    low_data = True
+                    break
+            
+            # Add page into self.cache
+            self.cache.append({tbd_url : tokenized_text})
+            
+            if not low_data:
+                # Insert into DB
+                self.tiny.insert({tbd_url : tokenized_text}) # inserting the text into the tinydb
+                
+                # Link Extraction
+                scraped_urls = scraper(tbd_url, resp)
+                for scraped_url in scraped_urls:
+                    self.frontier.add_url(scraped_url)
+            
+            # Mark as complete and sleep to be patient
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)
 
