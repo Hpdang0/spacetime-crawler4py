@@ -42,8 +42,8 @@ class Worker(Thread):
                 f"using cache {self.config.cache_server}.")
             untokenized_text = self.extract_text(resp)
             tokenized_text = self.token.Tokenize(untokenized_text)  
-            print(sorted(tokenized_text.items(),key = lambda i : i[1], reverse = True))
-            self.tiny.insert({tbd_url : list(tokenized_text.keys())}) # inserting the text into the tinydb
+            # print(sorted(tokenized_text.items(),key = lambda i : i[1], reverse = True))
+            self.tiny.insert({tbd_url : tokenized_text}) # inserting the text into the tinydb
             print(self.token.Final_dict())
             scraped_urls = scraper(tbd_url, resp)
             for scraped_url in scraped_urls:

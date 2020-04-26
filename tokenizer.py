@@ -32,7 +32,7 @@ class Tokenizer:
         if word_count > self.max_count:
             self.max_count = word_count
 
-        print(word_count)
+        # print(word_count)
 
         return token_dict
 
