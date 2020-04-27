@@ -57,6 +57,7 @@ class Worker(Thread):
         self.tiny = Data()
         super().__init__(daemon=True)
         self.cache = self.db_cache()
+        self.low_value_threshold = 20
         
         
     def run(self):
@@ -74,17 +75,24 @@ class Worker(Thread):
             untokenized_text = self.extract_text(resp)
             tokenized_text = self.token.Tokenize(untokenized_text)
 
+            # Determine if indexing is worthwhile
+            low_value_page = False
+            if sum(tokenized_text.values()) < self.low_value_threshold:
+                low_value_page = True
+                print('>> [SKIPPING] URL found to be of low value: {0} tokens'.format(sum(tokenized_text.values())))
+
             # Compare similarity to last 5 pages we crawled in
-            low_data = False
+            similar = False
             for url_token_pair in self.cache:
                 if self.token.Similarity(tokenized_text, url_token_pair[1]):
-                    low_data = True
+                    similar = True
+                    print('>> [SKIPPING] Similarity found between these two urls. Skipping the second url...\n>> {0}\n>> {1}'.format(url_token_pair[1], tbd_url))
                     break
             
             # Add page into self.cache
             self.cache.append({tbd_url : tokenized_text})
             
-            if not low_data:
+            if not similar and not low_value_page:
                 # Insert into DB
                 self.tiny.insert({tbd_url : tokenized_text}) # inserting the text into the tinydb
                 

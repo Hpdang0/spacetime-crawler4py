@@ -15,7 +15,6 @@ NO_CRAWL_REL = re.compile(r'nofollow|ugc|sponsored')
 
 
 def scraper(url, resp):
-    print('>> Starting scrape...')
     # Need to handle redirection loops
     # print(">> [STATUS CODE]", resp.status)
     # print(resp.error)
@@ -23,7 +22,6 @@ def scraper(url, resp):
         return []
 
     links = extract_next_links(url, resp)
-    print('>> Scraping done!')
     return [link for link in links]
 
 def extract_next_links(url, resp):
@@ -33,16 +31,9 @@ def extract_next_links(url, resp):
     
     all_links = [link.get('href') for link in soup.find_all(is_tag_crawlable)]
     all_links = list(filter(lambda link: append_path(url_base_compiled, link), all_links))
-    # print('>>>>', all_links)
 
     legal_links = list(filter(is_legal_and_valid, all_links))
     legal_links = set(map(truncate_fragment, legal_links))
-
-    count = 0
-    with open('word_desnity_log.txt', 'a') as file:
-        for word in soup.get_text().split():
-            count += len(word)
-        file.write(str(count) + '\n')
 
     # Debugging purposes
     # print(">> Found all links:\n>> " + "\n>> ".join(all_links))

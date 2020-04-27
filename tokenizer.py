@@ -83,7 +83,7 @@ class Tokenizer:
             # print('>> Weightings: {}'.format(weights))
 
         # print('>> Weightings: {}'.format(weights))
-        print('>> Normalized Weightings: {}'.format(self.normalize_weights(weights)))
+        # print('>> Normalized Weightings: {}'.format(self.normalize_weights(weights)))
         # print()
         return self.normalize_weights(weights)
 
