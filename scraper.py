@@ -15,14 +15,11 @@ NO_CRAWL_REL = re.compile(r'nofollow|ugc|sponsored')
 
 
 def scraper(url, resp):
-    # Need to handle redirection loops
-    # print(">> [STATUS CODE]", resp.status)
-    # print(resp.error)
     if str(resp.status).startswith('4') or resp.error:
         return []
 
     links = extract_next_links(url, resp)
-    return [link for link in links]
+    return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
     soup = bs4.BeautifulSoup(resp.raw_response.content, 'html.parser')
@@ -31,9 +28,9 @@ def extract_next_links(url, resp):
     
     all_links = [link.get('href') for link in soup.find_all(is_tag_crawlable)]
     all_links = list(filter(lambda link: append_path(url_base_compiled, link), all_links))
+    all_links = map(truncate_fragment, all_links)
 
-    legal_links = list(filter(is_legal_and_valid, all_links))
-    legal_links = set(map(truncate_fragment, legal_links))
+    legal_links = set(filter(is_legal_and_valid, all_links))
 
     # Debugging purposes
     # print(">> Found all links:\n>> " + "\n>> ".join(all_links))
