@@ -2,7 +2,7 @@ from threading import Thread
 
 from utils.download import download
 from utils import get_logger
-from scraper import scraper
+from scraper import scraper, is_valid
 from bs4 import BeautifulSoup
 from tinydb import TinyDB, Query
 import re
@@ -45,7 +45,7 @@ class Worker(Thread):
 
         def __next__(self):
             self.current += 1
-            if self.current < self._max_size:
+            if self.current < len(self._queue):
                 return self._queue[self.current]
             raise StopIteration
 
@@ -67,6 +67,12 @@ class Worker(Thread):
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
+
+            # If URL that was added into frontier was invalid, do not download it
+            if not is_valid(tbd_url):
+                self.frontier.mark_url_complete(tbd_url)
+                continue
+
             resp = download(tbd_url, self.config, self.logger)
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
@@ -80,18 +86,18 @@ class Worker(Thread):
             low_value_page = False
             if sum(tokenized_text.values()) < self.low_value_threshold:
                 low_value_page = True
-                print('>> [SKIPPING] URL found to be of low value: {0} tokens'.format(sum(tokenized_text.values())))
+                self.logger.info('>> [SKIPPING] URL found to be of low value: {0} tokens'.format(sum(tokenized_text.values())))
 
             # Compare similarity to last 5 pages we crawled in
             similar = False
             for url_token_pair in self.cache:
                 if self.token.Similarity(tokenized_text, url_token_pair[1]):
                     similar = True
-                    print('>> [SKIPPING] Similarity found between these two urls. Skipping the second url...\n>> {0}\n>> {1}'.format(url_token_pair[1], tbd_url))
+                    self.logger.info('>> [SKIPPING] Similarity found between these two urls. Skipping the second url...\n>> {0}\n>> {1}'.format(url_token_pair[0], tbd_url))
                     break
             
             # Add page into self.cache
-            self.cache.append({tbd_url : tokenized_text})
+            self.cache.append((tbd_url, tokenized_text))
             
             if not similar and not low_value_page:
                 # Insert into DB
