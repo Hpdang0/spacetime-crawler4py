@@ -5,6 +5,7 @@ from utils import get_logger
 from scraper import scraper
 from bs4 import BeautifulSoup
 from tinydb import TinyDB, Query
+import re
 
 from tokenizer import Tokenizer
 
@@ -107,12 +108,15 @@ class Worker(Thread):
 
     def extract_text(self, resp) -> list:
         blank_list = []
-        try:
-            soup = BeautifulSoup(resp.raw_response.content, features= 'html.parser')
-            for iter in list(soup.find_all("title") + soup.find_all("p")):
-                a = iter.get_text(strip=True,separator = ' ')
-                blank_list += (a.split())
-        except:
-            pass
+        soup = BeautifulSoup(resp.rawresponse.content, features= 'html.parser')
+        content_block = soup.select("#content, .content")
+        if content_block is not None:
+            for iter in content_block:
+                text = iter.get_text(strip=True,separator = ' ')
+                blank_list += (text.split())
+        else:
+            for iter in list(soup.find_all(re.compile(r'(title|p|h[0-9])'))):
+                text = iter.get_text(strip=True,separator = ' ')
+                blank_list += (text.split())
         return(blank_list)
 
