@@ -71,12 +71,19 @@ class Worker(Thread):
             # If URL that was added into frontier was invalid, do not download it
             if not is_valid(tbd_url):
                 self.frontier.mark_url_complete(tbd_url)
+                time.sleep(self.config.time_delay)
                 continue
 
             resp = download(tbd_url, self.config, self.logger)
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
+
+            # Check for any erroes from teh download
+            if str(resp.status).startswith('4') or resp.error:
+                self.frontier.mark_url_complete(tbd_url)
+                time.sleep(self.config.time_delay)
+                continue
             
             # Text Extraction
             untokenized_text = self.extract_text(resp)
@@ -86,14 +93,14 @@ class Worker(Thread):
             low_value_page = False
             if sum(tokenized_text.values()) < self.low_value_threshold:
                 low_value_page = True
-                self.logger.info('>> [SKIPPING] URL found to be of low value: {0} tokens'.format(sum(tokenized_text.values())))
+                self.logger.info('[SKIPPING] URL found to be of low value: {0} tokens'.format(sum(tokenized_text.values())))
 
             # Compare similarity to last 5 pages we crawled in
             similar = False
             for url_token_pair in self.cache:
                 if self.token.Similarity(tokenized_text, url_token_pair[1]):
                     similar = True
-                    self.logger.info('>> [SKIPPING] Similarity found between these two urls. Skipping the second url...\n>> {0}\n>> {1}'.format(url_token_pair[0], tbd_url))
+                    self.logger.info('[SKIPPING] Similarity found between these two urls. Skipping the second url...\n{0}\n{1}'.format(url_token_pair[0], tbd_url))
                     break
             
             # Add page into self.cache

@@ -10,7 +10,7 @@ class Tokenizer:
     for word in lines:
         stopwords.append(word)
 
-    similarity_threshold = .85
+    similarity_threshold = .93
 
     def Tokenize(self, input_list):
         token_dict = dict()
