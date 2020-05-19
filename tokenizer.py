@@ -18,7 +18,9 @@ class Tokenizer:
 
         for word in input_list:
             word = word.lower().strip("!@#$%^&*(),-_=+./:;''\\][`")
+            # check if length is greater than 3
             if len(word) >3 :
+                # check if not in stopwords
                 if word not in self.stopwords:
                     word_count += 1
 
@@ -59,7 +61,7 @@ class Tokenizer:
         return similar/total_size
 
     def create_simhash(self, words_dict):
-        hash_digest_size = 64
+        hash_digest_size = 4
         
         weights = []
         for i in range(hash_digest_size * 8):

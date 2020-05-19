@@ -110,19 +110,27 @@ class Worker(Thread):
             
             # Mark as complete and sleep to be patient
             self.frontier.mark_url_complete(tbd_url)
-            time.sleep(self.config.time_delay)
+            time.sleep(self.config.time_delay) # <-- politeness
 
     def extract_text(self, resp) -> list:
         blank_list = []
+        # using Beautiful Soup grabs the url from resp from the the downloaded information in the Worker Class
         soup = BeautifulSoup(resp.rawresponse.content, features= 'html.parser')
+        
+        # grabs content that has Id of content or tagged as content
         content_block = soup.select("#content, .content")
+        
+        # If the content_block got something from the beautiful soup selection "content", 
+        # it would extract the text and separate into a list of words
         if content_block is not None:
             for iter in content_block:
                 text = iter.get_text(strip=True,separator = ' ')
                 blank_list += (text.split())
+        
+        # Otherwise, we would use beautiful soup's find all function to grab tags <title>, <p>, and <headers> 
+        # in the document and return it as a list and same concept of extracts and outputting a list of words.
         else:
             for iter in list(soup.find_all(re.compile(r'(title|p|h[0-9])'))):
                 text = iter.get_text(strip=True,separator = ' ')
                 blank_list += (text.split())
         return(blank_list)
-

@@ -7,10 +7,12 @@ from crawler import Crawler
 
 
 def main(config_file, restart):
+    #opens up config.ini file & reads them
     cparser = ConfigParser()
     cparser.read(config_file)
     config = Config(cparser)
     config.cache_server = get_cache_server(config, restart)
+    #establishing the crawler
     crawler = Crawler(config, restart)
     crawler.start()
 

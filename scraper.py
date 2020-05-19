@@ -15,6 +15,7 @@ NO_CRAWL_REL = re.compile(r'nofollow|ugc|sponsored')
 
 
 def scraper(url, resp):
+    # checks if the server response shows an error message of ex: 404 or 601)
     if str(resp.status).startswith('4') or resp.error:
         return []
 
@@ -27,9 +28,13 @@ def extract_next_links(url, resp):
     url_base_compiled = url_parsed[0] + '://' + url_parsed[1]
     
     all_links = [link.get('href') for link in soup.find_all(is_tag_crawlable)]
+    
+    # filter takes a function, iterable and then for each element in iterable, call that function with the argument as that element
+    # THIS SHOULD'VE ACTUALLY BEEN A MAP
     all_links = list(filter(lambda link: append_path(url_base_compiled, link), all_links))
+    
+    
     all_links = map(truncate_fragment, all_links)
-
     legal_links = set(filter(is_legal_and_valid, all_links))
 
     # Debugging purposes
@@ -43,6 +48,7 @@ def is_tag_crawlable(tag):
         return False
 
     if not tag.has_attr('rel'):
+        # if tag doesn't have relation, then that means that the url is not sponsered, ugc, nofollow
         return True
 
     for attr in tag['rel']:
@@ -51,7 +57,7 @@ def is_tag_crawlable(tag):
         return True
 
 def append_path(url, path:str):
-    # print(url, path)
+    # some urls is just a path, we need to prepend the base url to it
     if path is None or not path.startswith('/'):
         return path
     
